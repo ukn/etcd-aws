@@ -152,14 +152,6 @@ func main() {
 	dataDir := flag.String("data-dir", defaultDataDir,
 		"The path to the etcd2 data directory. "+
 			"Environment variable: ETCD_DATA_DIR")
-
-	/*queueUrl, err := s.LifecycleEventQueueURL()
-	if err != nil {
-		log.Printf("ERROR: %s", err.Error())
-	}
-	if os.Getenv("QUEUE_URL") != "" {
-		queueUrl = os.Getenv("QUEUE_URL")
-	}*/
 	flag.Parse()
 
 	var err error
@@ -246,7 +238,7 @@ func main() {
 		fmt.Sprintf("ETCD_INITIAL_CLUSTER=%s", strings.Join(initialCluster, ",")),
 		fmt.Sprintf("ETCD_INITIAL_ADVERTISE_PEER_URLS=http://%s:2380", *localInstance.PrivateIpAddress),
 	}
-	log.Printf("QUEUE_URL=%s", queueUrl)
+	log.Printf("Lifecycle sqs: %s", queueUrl)
 	asg, _ := s.AutoscalingGroup()
 	if asg != nil {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("ETCD_INITIAL_CLUSTER_TOKEN=%s", *asg.AutoScalingGroupARN))
