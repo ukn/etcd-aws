@@ -152,6 +152,14 @@ func main() {
 	dataDir := flag.String("data-dir", defaultDataDir,
 		"The path to the etcd2 data directory. "+
 			"Environment variable: ETCD_DATA_DIR")
+
+	/*queueUrl, err := s.LifecycleEventQueueURL()
+	if err != nil {
+		log.Printf("ERROR: %s", err.Error())
+	}
+	if os.Getenv("QUEUE_URL") != "" {
+		queueUrl = os.Getenv("QUEUE_URL")
+	}*/
 	flag.Parse()
 
 	var err error
@@ -172,6 +180,12 @@ func main() {
 		AwsSession: awsSession,
 		InstanceID: *instanceID,
 		TagName:    *clusterTagName,
+	}
+
+	// get SQS Queue for lifecycle
+	queueUrl, _ := s.LifecycleEventQueueURL()
+	if d := os.Getenv("QUEUE_URL"); d != "" {
+		queueUrl = d
 	}
 
 	localInstance, err := s.Instance()
@@ -215,7 +229,7 @@ func main() {
 
 	// watch for lifecycle events and remove nodes from the cluster as they are
 	// terminated.
-	go watchLifecycleEvents(s, localInstance)
+	go watchLifecycleEvents(s, localInstance, &queueUrl)
 
 	// Run the etcd command
 	cmd := exec.Command("etcd")
@@ -232,6 +246,7 @@ func main() {
 		fmt.Sprintf("ETCD_INITIAL_CLUSTER=%s", strings.Join(initialCluster, ",")),
 		fmt.Sprintf("ETCD_INITIAL_ADVERTISE_PEER_URLS=http://%s:2380", *localInstance.PrivateIpAddress),
 	}
+	log.Printf("QUEUE_URL=%s", queueUrl)
 	asg, _ := s.AutoscalingGroup()
 	if asg != nil {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("ETCD_INITIAL_CLUSTER_TOKEN=%s", *asg.AutoScalingGroupARN))
