@@ -174,12 +174,6 @@ func main() {
 		TagName:    *clusterTagName,
 	}
 
-	// get SQS Queue for lifecycle
-	queueUrl, _ := s.LifecycleEventQueueURL()
-	if d := os.Getenv("QUEUE_URL"); d != "" {
-		queueUrl = d
-	}
-
 	localInstance, err := s.Instance()
 	if err != nil {
 		log.Fatalf("ERROR: %s", err)
@@ -221,7 +215,7 @@ func main() {
 
 	// watch for lifecycle events and remove nodes from the cluster as they are
 	// terminated.
-	go watchLifecycleEvents(s, localInstance, &queueUrl)
+	go watchLifecycleEvents(s, localInstance)
 
 	// Run the etcd command
 	cmd := exec.Command("etcd")
@@ -238,7 +232,6 @@ func main() {
 		fmt.Sprintf("ETCD_INITIAL_CLUSTER=%s", strings.Join(initialCluster, ",")),
 		fmt.Sprintf("ETCD_INITIAL_ADVERTISE_PEER_URLS=http://%s:2380", *localInstance.PrivateIpAddress),
 	}
-	log.Printf("Lifecycle sqs: %s", queueUrl)
 	asg, _ := s.AutoscalingGroup()
 	if asg != nil {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("ETCD_INITIAL_CLUSTER_TOKEN=%s", *asg.AutoScalingGroupARN))

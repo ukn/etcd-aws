@@ -51,10 +51,10 @@ func handleLifecycleEvent(m *ec2cluster.LifecycleMessage) (shouldContinue bool, 
 	return false, nil
 }
 
-func watchLifecycleEvents(s *ec2cluster.Cluster, localInstance *ec2.Instance, queueUrl *string) {
+func watchLifecycleEvents(s *ec2cluster.Cluster, localInstance *ec2.Instance) {
 	etcdLocalURL = fmt.Sprintf("http://%s:2379", *localInstance.PrivateIpAddress)
 	for {
-		err := s.WatchLifecycleEvents(*queueUrl, handleLifecycleEvent)
+		queueUrl, err := s.LifecycleEventQueueURL()
 
 		// The lifecycle hook might not exist yet if we're being created
 		// by cloudformation.
@@ -63,6 +63,14 @@ func watchLifecycleEvents(s *ec2cluster.Cluster, localInstance *ec2.Instance, qu
 			time.Sleep(10 * time.Second)
 			continue
 		}
+
+		if err != nil {
+			log.Fatalf("ERROR: LifecycleEventQueueUrl: %s", err)
+		}
+		log.Printf("Found Lifecycle SQS Queue: %s", queueUrl)
+
+		err = s.WatchLifecycleEvents(queueUrl, handleLifecycleEvent)
+
 		if err != nil {
 			log.Fatalf("ERROR: WatchLifecycleEvents: %s", err)
 		}
