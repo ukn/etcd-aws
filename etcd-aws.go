@@ -218,7 +218,7 @@ func main() {
 	go watchLifecycleEvents(s, localInstance)
 
 	// Run the etcd command
-	cmd := exec.Command("etcd")
+	cmd := exec.Command("etcd2")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Env = []string{
